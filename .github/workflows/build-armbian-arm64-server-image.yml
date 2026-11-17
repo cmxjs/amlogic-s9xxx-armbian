@@ -346,7 +346,7 @@ jobs:
         if: ${{ steps.init.outputs.status == 'success' && !cancelled() }}
         run: |
           df -hT ${PWD}
-          git clone --depth=1 --single-branch --branch=v24.11 https://mirror.ghproxy.com/https://github.com/armbian/build.git build
+          git clone --depth=1 --single-branch --branch=v24.11 https://gh-proxy.org/https://github.com/armbian/build.git build
           ln -sf /builder/build ${{ github.workspace }}/build
           ln -sf /builder/build /home/runner/work/_actions/ophub/amlogic-s9xxx-armbian/main/build
           echo "status=success" >> ${GITHUB_OUTPUT}
