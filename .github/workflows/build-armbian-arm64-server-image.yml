@@ -346,24 +346,15 @@ jobs:
         if: ${{ steps.init.outputs.status == 'success' && !cancelled() }}
         run: |
           df -hT ${PWD}
-          git clone --single-branch --branch=main https://github.com/armbian/build.git build
+          git clone --depth=1 --single-branch --branch=v24.11 https://mirror.ghproxy.com/https://github.com/armbian/build.git build
           ln -sf /builder/build ${{ github.workspace }}/build
           ln -sf /builder/build /home/runner/work/_actions/ophub/amlogic-s9xxx-armbian/main/build
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
-      - name: Patch bypass jammy EOS
-        id: patch
-        working-directory: /builder/build
-        if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
-        run: |
-          echo "community" > config/distributions/jammy/support
-          cat config/distributions/jammy/support
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Compile Armbian [ ${{ inputs.set_release }} ]
         id: compile
         working-directory: /builder
-        if: ${{ steps.patch.outputs.status == 'success' && !cancelled() }}
+        if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
         run: |
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes 2>/dev/null || true
           cd build/
