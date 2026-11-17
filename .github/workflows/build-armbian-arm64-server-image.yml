@@ -346,9 +346,18 @@ jobs:
         if: ${{ steps.init.outputs.status == 'success' && !cancelled() }}
         run: |
           df -hT ${PWD}
-          git clone -q --single-branch --branch=v24.11 https://github.com/armbian/build.git build
+          git clone --single-branch --branch=main https://github.com/armbian/build.git build
           ln -sf /builder/build ${{ github.workspace }}/build
           ln -sf /builder/build /home/runner/work/_actions/ophub/amlogic-s9xxx-armbian/main/build
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Patch bypass jammy EOS
+        id: patch
+        working-directory: /builder/build
+        if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
+        run: |
+          echo "community" > config/distributions/jammy/support
+          cat config/distributions/jammy/support
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Compile Armbian [ ${{ inputs.set_release }} ]
@@ -356,13 +365,11 @@ jobs:
         working-directory: /builder
         if: ${{ steps.patch.outputs.status == 'success' && !cancelled() }}
         run: |
-          # Enable QEMU emulation for ARM cross-compilation
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes 2>/dev/null || true
-          # Compile options reference: https://docs.armbian.com/Developer-Guide_Build-Options
           cd build/
-              ./compile.sh RELEASE=${{ inputs.set_release }} BOARD=odroidn2 BRANCH=current BUILD_MINIMAL=no \
+              ./compile.sh build RELEASE=${{ inputs.set_release }} BOARD=odroidn2 BRANCH=current BUILD_MINIMAL=no \
                           BUILD_ONLY=default HOST=armbian BUILD_DESKTOP=no EXPERT=yes KERNEL_CONFIGURE=no \
-                          COMPRESS_OUTPUTIMAGE="sha" SHARE_LOG=yes
+                          COMPRESS_OUTPUTIMAGE="sha" SHARE_LOG=yes DEBUG=yes
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Organize output files and reclaim disk space
