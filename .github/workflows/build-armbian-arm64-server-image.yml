@@ -351,13 +351,14 @@ jobs:
           ln -sf /builder/build /home/runner/work/_actions/ophub/amlogic-s9xxx-armbian/main/build
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      # ========== 在这里新增补丁步骤 ==========
       - name: Patch bypass jammy EOS check
         id: patch
         working-directory: /builder/build
         if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
         run: |
-          sed -i '/check_config_userspace_release_and_desktop()/,/}/d' lib/functions/main/config-prepare.sh
+          # 直接注释掉 jammy EOS判断行，精准，不依赖多行匹配
+          sed -i 's/.*jammy.*end of life/# &/' lib/functions/main/config-prepare.sh
+          echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Compile Armbian [ ${{ inputs.set_release }} ]
         id: compile
