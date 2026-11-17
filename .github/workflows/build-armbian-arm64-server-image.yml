@@ -346,11 +346,7 @@ jobs:
         if: ${{ steps.init.outputs.status == 'success' && !cancelled() }}
         run: |
           df -hT ${PWD}
-          git clone -q --single-branch https://github.com/armbian/build.git build
-          cd build
-          # 切到 v24.11 版本，这个版本原生支持jammy，没有EOS拦截
-          git checkout v24.11.1
-          cd ..
+          git clone -q --single-branch --branch=v24.11 https://github.com/armbian/build.git build
           ln -sf /builder/build ${{ github.workspace }}/build
           ln -sf /builder/build /home/runner/work/_actions/ophub/amlogic-s9xxx-armbian/main/build
           echo "status=success" >> ${GITHUB_OUTPUT}
