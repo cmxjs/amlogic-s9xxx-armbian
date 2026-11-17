@@ -346,18 +346,13 @@ jobs:
         if: ${{ steps.init.outputs.status == 'success' && !cancelled() }}
         run: |
           df -hT ${PWD}
-          git clone -q --single-branch --depth=1 --branch=main https://github.com/armbian/build.git build
+          git clone -q --single-branch https://github.com/armbian/build.git build
+          cd build
+          # 锁定到 jammy 还没被标记EOS的commit
+          git checkout 1608481813a50097111174c44706844444014000
+          cd ..
           ln -sf /builder/build ${{ github.workspace }}/build
           ln -sf /builder/build /home/runner/work/_actions/ophub/amlogic-s9xxx-armbian/main/build
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
-      - name: Patch bypass jammy EOS check
-        id: patch
-        working-directory: /builder/build
-        if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
-        run: |
-          # 直接注释掉 jammy EOS判断行，精准，不依赖多行匹配
-          sed -i 's/.*jammy.*end of life/# &/' lib/functions/main/config-prepare.sh
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Compile Armbian [ ${{ inputs.set_release }} ]
