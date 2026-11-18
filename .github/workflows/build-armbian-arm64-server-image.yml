@@ -389,35 +389,39 @@ jobs:
           allowUpdates: true
           makeLatest: true
           token: ${{ secrets.RELEASE_TOKEN }}
-      # 新增：把文件复制到大分区 /builder
-      - name: Copy files to /builder (large partition)
+
+      - name: Copy source files to /builder big partition
         if: ${{ steps.clean.outputs.status == 'success' && !cancelled() }}
         run: |
-          sudo mkdir -p /builder/work
-          sudo cp -r ${{ github.workspace }} /builder/work/
-          df -h
+          sudo mkdir -p /builder/ophub
+          sudo cp -r ${{ github.workspace }} /builder/ophub/
+          cd /builder/ophub/${{ github.event.repository.name }}
+          ls -la build/output/images
 
-      # 重建步骤：working-directory 切到 /builder/work/${{ github.event.repository.name }}
-      - name: Rebuild Armbian for target boards
-        uses: ophub/amlogic-s9xxx-armbian@main
+      - name: Rebuild Armbian on /builder (big disk)
         if: ${{ steps.clean.outputs.status == 'success' && !cancelled() }}
-        working-directory: /builder/work/${{ github.event.repository.name }}
-        with:
-          build_target: armbian
-          armbian_path: build/output/images/*.img.gz
-          armbian_board: ${{ inputs.armbian_board }}
-          armbian_kernel: ${{ inputs.armbian_kernel }}
-          auto_kernel: ${{ inputs.auto_kernel }}
-          kernel_repo: ${{ inputs.kernel_repo }}
-          kernel_usage: ${{ inputs.kernel_usage }}
-          armbian_fstype: ${{ inputs.armbian_fstype }}
-          builder_name: ${{ inputs.builder_name }}
+        run: |
+          cd /builder/ophub/${{ github.event.repository.name }}
+          # 拉取 ophub 源码，直接执行 rebuild.sh
+          git clone --depth 1 https://github.com/ophub/amlogic-s9xxx-armbian.git ophub-rebuild
+          cd ophub-rebuild
+          bash rebuild.sh \
+            -b ${{ inputs.armbian_board }} \
+            -k ${{ inputs.armbian_kernel }} \
+            -a ${{ inputs.auto_kernel }} \
+            -r ${{ inputs.kernel_repo }} \
+            -u ${{ inputs.kernel_usage }} \
+            -f ${{ inputs.armbian_fstype }} \
+            -n ${{ inputs.builder_name }} \
+            -H false \
+            -p ../build/output/images/*.img.gz
 
-      # 新增：重建完成后，把成品镜像拷贝回github工作区，给后面release上传用
-      - name: Copy back images to workspace
+      # 把重建好的镜像拷贝回工作区，给release上传
+      - name: Copy back images
         if: ${{ success() && !cancelled() }}
         run: |
-          sudo cp -r /builder/work/${{ github.event.repository.name }}/build/output/images ${{ github.workspace }}/build/output/
+          sudo cp -r /builder/ophub/${{ github.event.repository.name }}/build/output/images ${{ github.workspace }}/build/output/
+
 
 
       - name: Upload rebuilt images to Release
