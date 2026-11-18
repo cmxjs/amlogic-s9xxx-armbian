@@ -389,10 +389,19 @@ jobs:
           allowUpdates: true
           makeLatest: true
           token: ${{ secrets.RELEASE_TOKEN }}
+      # 新增：把文件复制到大分区 /builder
+      - name: Copy files to /builder (large partition)
+        if: ${{ steps.clean.outputs.status == 'success' && !cancelled() }}
+        run: |
+          sudo mkdir -p /builder/work
+          sudo cp -r ${{ github.workspace }} /builder/work/
+          df -h
 
+      # 重建步骤：working-directory 切到 /builder/work/${{ github.event.repository.name }}
       - name: Rebuild Armbian for target boards
         uses: ophub/amlogic-s9xxx-armbian@main
         if: ${{ steps.clean.outputs.status == 'success' && !cancelled() }}
+        working-directory: /builder/work/${{ github.event.repository.name }}
         with:
           build_target: armbian
           armbian_path: build/output/images/*.img.gz
@@ -403,6 +412,13 @@ jobs:
           kernel_usage: ${{ inputs.kernel_usage }}
           armbian_fstype: ${{ inputs.armbian_fstype }}
           builder_name: ${{ inputs.builder_name }}
+
+      # 新增：重建完成后，把成品镜像拷贝回github工作区，给后面release上传用
+      - name: Copy back images to workspace
+        if: ${{ success() && !cancelled() }}
+        run: |
+          sudo cp -r /builder/work/${{ github.event.repository.name }}/build/output/images ${{ github.workspace }}/build/output/
+
 
       - name: Upload rebuilt images to Release
         uses: ncipollo/release-action@main
